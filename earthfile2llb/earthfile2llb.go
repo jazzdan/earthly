@@ -77,6 +77,9 @@ type ConvertOpt struct {
 	// Gitlookup is used to attach credentials to GIT CLONE operations
 	GitLookup *buildcontext.GitLookup
 
+	// Features is the set of enabled features
+	Features *features.Features
+
 	// ParallelConversion is a feature flag enabling the parallel conversion algorithm.
 	ParallelConversion bool
 	// Parallelism is a semaphore controlling the maximum parallelism.
@@ -107,11 +110,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, errors.Wrapf(err, "resolve feature set for version %v for target %s", bc.Earthfile.Version.Args, target.String())
 	}
-
-	if !ftrs.ReferencedSaveOnly {
-		// 0.5 behaviour is to save all artifacts and images irrigardless if they are directly referenced or not
-		opt.DoSaves = true
-	}
+	opt.Features = ftrs
 
 	targetWithMetadata := bc.Ref.(domain.Target)
 	sts, found, err := opt.Visited.Add(ctx, targetWithMetadata, opt.Platform, opt.AllowPrivileged, opt.OverridingVars, opt.parentDepSub)
@@ -129,7 +128,7 @@ func Earthfile2LLB(ctx context.Context, target domain.Target, opt ConvertOpt) (m
 	if err != nil {
 		return nil, err
 	}
-	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.DoSaves, opt.ParallelConversion, opt.Parallelism, opt.Console, opt.GitLookup)
+	interpreter := newInterpreter(converter, targetWithMetadata, opt.AllowPrivileged, opt.ParallelConversion, opt.Parallelism, opt.Console, opt.GitLookup)
 	err = interpreter.Run(ctx, bc.Earthfile)
 	if err != nil {
 		return nil, err
