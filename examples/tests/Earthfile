@@ -59,6 +59,8 @@ ga:
     BUILD +save-artifact-after-push
     BUILD +save-artifact-selective
     BUILD +save-artifact-selective-legacy
+    BUILD +save-remote-artifact-selective-legacy
+    BUILD +save-remote-artifact-selective
     BUILD +push-build
     BUILD +build-arg-repeat
     BUILD +if
@@ -495,6 +497,14 @@ save-artifact-selective-legacy:
         test   -f c && \
         test   -f d
 
+save-remote-artifact-selective-legacy:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/no-version:main+savelocal
+    RUN test ! -f ./output/testfile
+
+save-remote-artifact-selective:
+    DO +RUN_EARTHLY --target=github.com/earthly/test-remote/output/versioned:main+savelocal
+    RUN test ! ./output/testfile
+
 push-build:
     DO +RUN_EARTHLY --earthfile=push-build.earth --target=+test --extra_args="--push" --post_command="> output 2>&1"
     RUN cat output
@@ -594,7 +604,9 @@ RUN_EARTHLY:
     ARG post_command
     ARG should_fail=false
     ARG use_tmpfs=true
-    COPY "$earthfile" ./Earthfile
+    IF [ ! -z "$earthfile" ]
+        COPY "$earthfile" ./Earthfile
+    END
     RUN echo "
         set -x
         if $use_tmpfs; then
